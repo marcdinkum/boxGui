@@ -1,8 +1,8 @@
 #pragma once
 
 #include <ofMain.h>
-#include <ofxGui.h>
 #include <ofxOsc.h>
+#include "matrixButton.h"
 
 #define OSC_REMOTE_HOST "127.0.0.1"
 #define OSC_REMOTE_PORT 7777
@@ -25,20 +25,15 @@ public:
   void dragEvent(ofDragInfo dragInfo);
   void gotMessage(ofMessage msg);		
 
-  void rowSliderChanged(int& row);
-  void columnSliderChanged(int& row);
-  void boxButtonPressed();
-
-
-  ofxIntSlider rowSlider;
-  ofxIntSlider columnSlider;
-  ofxButton boxButton;
-
-  ofxPanel controlPanel;
+  int rows=16,cols=14;
+  float margin;
+  int currentRow;
+  ofColor idleColor,activeColor,idleRowColor,activeRowColor;
 
   ofxOscSender oscSender;
+  ofxOscReceiver oscReceiver;
 
-private:
-  int row,column;
+  MatrixButton matrix[16][14];
+
 };
 

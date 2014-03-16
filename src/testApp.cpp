@@ -3,15 +3,30 @@
 
 void testApp::setup()
 {
-  rowSlider.addListener(this,&testApp::rowSliderChanged);
-  columnSlider.addListener(this,&testApp::columnSliderChanged);
-  boxButton.addListener(this,&testApp::boxButtonPressed);
+  margin=3; // space around each 'button'
 
-  controlPanel.setup();
-  controlPanel.add(rowSlider.setup("Rij",0,0,7,300,20));
-  controlPanel.add(columnSlider.setup("Kolom",0,0,15,300,20 ));
-  controlPanel.add(boxButton.setup("Switch box on"));
-  controlPanel.setPosition(0.3*ofGetWidth(),0.4*ofGetHeight());
+  float rectWidth=(ofGetWidth()-(cols+1)*margin)/cols;
+  float rectHeight=(ofGetHeight()-(rows+1)*margin)/rows;
+
+  ofSetFrameRate(30);
+
+  currentRow=15;
+  idleColor=ofColor(100,175,175);
+  activeColor=ofColor(200,225,225);
+  // selected row
+  idleRowColor=ofColor(75,200,150);
+  activeRowColor=ofColor(50,255,255);
+
+  for(int row=0; row<rows; row++){
+    for(int col=0; col<cols; col++){
+      matrix[row][col].setGeometry(col*rectWidth+(col+1)*margin,
+          row*rectHeight+(row+1)*margin,rectWidth,rectHeight);
+      if(row==currentRow)
+        matrix[row][col].setColors(idleRowColor,activeRowColor);
+      else
+        matrix[row][col].setColors(idleColor,activeColor);
+    } // for
+  } // for
 
   oscSender.setup(OSC_REMOTE_HOST,OSC_REMOTE_PORT);
 } // setup
@@ -19,34 +34,7 @@ void testApp::setup()
 
 void testApp::exit()
 {
-  boxButton.removeListener(this,&testApp::boxButtonPressed);
 } // exit()
-
-
-void testApp::rowSliderChanged(int& row)
-{
-  this->row=row;
-  cout << "row " << row << endl;
-} // rowSliderChanged()
-
-
-void testApp::columnSliderChanged(int& column)
-{
-  this->column=column;
-  cout << "column " << column << endl;
-} // columnSliderChanged()
-
-
-void testApp::boxButtonPressed()
-{
-  cout << "Auw\n";
-  ofxOscMessage m;
-  m.setAddress("/box/setstatus");
-  m.addIntArg(row);
-  m.addIntArg(column);
-  m.addIntArg(1);
-  oscSender.sendMessage(m);
-} // boxButtonPressed
 
 
 void testApp::update()
@@ -56,14 +44,66 @@ void testApp::update()
 
 void testApp::draw()
 {
-  ofBackgroundGradient(ofColor::white,ofColor::gray);
-  controlPanel.draw();
+  for(int row=0; row<rows; row++){
+    for(int col=0; col<cols; col++){
+      matrix[row][col].draw();
+    } // for
+  } // for
 } // draw()
 
 
 void testApp::keyPressed(int key)
 {
-}
+bool carry,status;
+
+  switch(key)
+  {
+    case OF_KEY_DOWN:
+      for(int col=0; col<cols; col++)
+        matrix[currentRow][col].setColors(idleColor,activeColor);
+      currentRow = (currentRow+1)%rows;
+      for(int col=0; col<cols; col++)
+        matrix[currentRow][col].setColors(idleRowColor,activeRowColor);
+    return;
+    case OF_KEY_UP:
+      for(int col=0; col<cols; col++)
+        matrix[currentRow][col].setColors(idleColor,activeColor);
+      currentRow = (currentRow-1)%rows;
+      for(int col=0; col<cols; col++)
+        matrix[currentRow][col].setColors(idleRowColor,activeRowColor);
+    return;
+    case OF_KEY_LEFT:
+      carry=matrix[currentRow][0].getStatus();
+      for(int col=0; col<cols-1; col++)
+        matrix[currentRow][col].setStatus(matrix[currentRow][col+1].getStatus());
+      matrix[currentRow][cols-1].setStatus(carry);
+    break;
+    case OF_KEY_RIGHT:
+      carry=matrix[currentRow][cols-1].getStatus();
+      for(int col=cols-1; col>0; col--)
+        matrix[currentRow][col].setStatus(matrix[currentRow][col-1].getStatus());
+      matrix[currentRow][0].setStatus(carry);
+    break;
+    case ' ':
+      for(int col=0; col<cols; col++)
+        matrix[currentRow][col].setStatus(false);
+    break;
+    case 'i':
+      for(int col=0; col<cols; col++)
+        matrix[currentRow][col].setStatus(!matrix[currentRow][col].getStatus());
+    break;
+  } // switch
+  for(int col=0; col<cols; col++){
+    status=matrix[currentRow][col].getStatus();
+    ofxOscMessage m;
+    m.setAddress("/box/setstatus");
+    m.addIntArg(currentRow);
+    m.addIntArg(col);
+    m.addIntArg(status);
+    oscSender.sendMessage(m);
+  } // for
+} // keyPressed()
+
 
 void testApp::keyReleased(int key)
 {
@@ -75,11 +115,43 @@ void testApp::mouseMoved(int x, int y )
 
 void testApp::mouseDragged(int x, int y, int button)
 {
+bool newstatus;
+
+  for(int row=0; row<rows; row++){
+    for(int col=0; col<cols; col++){
+      if(matrix[row][col].pointerIsIn(mouseX,mouseY)){
+        newstatus = !button ? 1 : 0;
+	matrix[row][col].setStatus(newstatus);
+	ofxOscMessage m;
+	m.setAddress("/box/setstatus");
+	m.addIntArg(row);
+	m.addIntArg(col);
+	m.addIntArg(newstatus);
+	oscSender.sendMessage(m);
+      } // if
+    } // for
+  } // for
 }
 
 void testApp::mousePressed(int x, int y, int button)
 {
-}
+bool status;
+
+  for(int row=0; row<rows; row++){
+    for(int col=0; col<cols; col++){
+      if(matrix[row][col].pointerIsIn(mouseX,mouseY)){
+        status=matrix[row][col].toggleStatus();
+	ofxOscMessage m;
+	m.setAddress("/box/setstatus");
+	m.addIntArg(row);
+	m.addIntArg(col);
+	m.addIntArg(status);
+	oscSender.sendMessage(m);
+      } // if
+    } // for
+  } // for
+} // mousePressed()
+
 
 void testApp::mouseReleased(int x, int y, int button)
 {
@@ -87,6 +159,16 @@ void testApp::mouseReleased(int x, int y, int button)
 
 void testApp::windowResized(int w, int h)
 {
+float rectWidth=(w-(cols+1)*margin)/cols;
+float rectHeight=(h-(rows+1)*margin)/rows;
+
+  for(int row=0; row<rows; row++){
+    for(int col=0; col<cols; col++){
+      matrix[row][col].setGeometry(col*rectWidth+(col+1)*margin,
+          row*rectHeight+(row+1)*margin,rectWidth,rectHeight);
+    } // for
+  } // for
+
 }
 
 void testApp::gotMessage(ofMessage msg)
