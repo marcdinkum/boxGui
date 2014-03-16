@@ -3,6 +3,8 @@
 
 void testApp::setup()
 {
+  oscHost=ofSystemTextBoxDialog("Host",OSC_REMOTE_HOST);
+
   margin=3; // space around each 'button'
 
   float rectWidth=(ofGetWidth()-(cols+1)*margin)/cols;
@@ -28,7 +30,12 @@ void testApp::setup()
     } // for
   } // for
 
-  oscSender.setup(OSC_REMOTE_HOST,OSC_REMOTE_PORT);
+  // send registration message to server
+  oscReceiver.setup(OSC_RECEIVE_PORT);
+  oscSender.setup(oscHost,OSC_REMOTE_PORT);
+  ofxOscMessage m;
+  m.setAddress("/register");
+  oscSender.sendMessage(m);
 } // setup
 
 
@@ -39,6 +46,22 @@ void testApp::exit()
 
 void testApp::update()
 {
+ofxOscMessage msg;
+int row,col,status;
+
+  // pull all messages from the queue
+  while(oscReceiver.getNextMessage(&msg))
+  {
+    if(msg.getAddress() == "/box/status") {
+      row=msg.getArgAsInt32(0);
+      col=msg.getArgAsInt32(1);
+      status=msg.getArgAsInt32(2);
+      if(row >= rows || col >= cols) continue; // ignore illegal row/col
+      if(row < 0 || col < 0) continue; // ignore illegal row/col
+      matrix[row][col].setStatus(status);
+    } // if
+  } // while
+
 } // update()
 
 
@@ -68,7 +91,9 @@ bool carry,status;
     case OF_KEY_UP:
       for(int col=0; col<cols; col++)
         matrix[currentRow][col].setColors(idleColor,activeColor);
-      currentRow = (currentRow-1)%rows;
+      if(currentRow==0) currentRow=rows-1;
+      else currentRow = (currentRow-1)%rows;
+      cout << currentRow << endl;
       for(int col=0; col<cols; col++)
         matrix[currentRow][col].setColors(idleRowColor,activeRowColor);
     return;
@@ -91,6 +116,11 @@ bool carry,status;
     case 'i':
       for(int col=0; col<cols; col++)
         matrix[currentRow][col].setStatus(!matrix[currentRow][col].getStatus());
+    break;
+    case 'r': // (re-)register
+      ofxOscMessage m;
+      m.setAddress("/register");
+      oscSender.sendMessage(m);
     break;
   } // switch
   for(int col=0; col<cols; col++){

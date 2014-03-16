@@ -6,6 +6,7 @@
 
 #define OSC_REMOTE_HOST "127.0.0.1"
 #define OSC_REMOTE_PORT 7777
+#define OSC_RECEIVE_PORT 7778
 
 class testApp : public ofBaseApp{
 	
@@ -25,6 +26,8 @@ public:
   void dragEvent(ofDragInfo dragInfo);
   void gotMessage(ofMessage msg);		
 
+private:
+  string oscHost;
   int rows=16,cols=14;
   float margin;
   int currentRow;
@@ -34,6 +37,5 @@ public:
   ofxOscReceiver oscReceiver;
 
   MatrixButton matrix[16][14];
-
 };
 
