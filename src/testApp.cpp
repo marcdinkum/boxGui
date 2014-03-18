@@ -93,7 +93,6 @@ bool carry,status;
         matrix[currentRow][col].setColors(idleColor,activeColor);
       if(currentRow==0) currentRow=rows-1;
       else currentRow = (currentRow-1)%rows;
-      cout << currentRow << endl;
       for(int col=0; col<cols; col++)
         matrix[currentRow][col].setColors(idleRowColor,activeRowColor);
     return;
