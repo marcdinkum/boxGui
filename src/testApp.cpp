@@ -3,11 +3,14 @@
 
 void testApp::setup()
 {
+  rows=ROWS;
+  columns=COLUMNS;
+
   oscHost=ofSystemTextBoxDialog("Host",OSC_REMOTE_HOST);
 
   margin=3; // space around each 'button'
 
-  float rectWidth=(ofGetWidth()-(cols+1)*margin)/cols;
+  float rectWidth=(ofGetWidth()-(columns+1)*margin)/columns;
   float rectHeight=(ofGetHeight()-(rows+1)*margin)/rows;
 
   ofSetFrameRate(30);
@@ -20,7 +23,7 @@ void testApp::setup()
   activeRowColor=ofColor(50,255,255);
 
   for(int row=0; row<rows; row++){
-    for(int col=0; col<cols; col++){
+    for(int col=0; col<columns; col++){
       matrix[row][col].setGeometry(col*rectWidth+(col+1)*margin,
           row*rectHeight+(row+1)*margin,rectWidth,rectHeight);
       if(row==currentRow)
@@ -56,9 +59,15 @@ int row,col,status;
       row=msg.getArgAsInt32(0);
       col=msg.getArgAsInt32(1);
       status=msg.getArgAsInt32(2);
-      if(row >= rows || col >= cols) continue; // ignore illegal row/col
+      if(row >= rows || col >= columns) continue; // ignore illegal row/col
       if(row < 0 || col < 0) continue; // ignore illegal row/col
       matrix[row][col].setStatus(status);
+    } // if
+    if(msg.getAddress() == "/box/columns") {
+      columns=msg.getArgAsInt32(0);
+      if(columns>COLUMNS) columns=COLUMNS; // upper bound
+      if(columns<2) columns=2; // lower bound
+      windowResized(ofGetWidth(),ofGetHeight());
     } // if
   } // while
 
@@ -68,7 +77,7 @@ int row,col,status;
 void testApp::draw()
 {
   for(int row=0; row<rows; row++){
-    for(int col=0; col<cols; col++){
+    for(int col=0; col<columns; col++){
       matrix[row][col].draw();
     } // for
   } // for
@@ -82,38 +91,38 @@ bool carry,status;
   switch(key)
   {
     case OF_KEY_DOWN:
-      for(int col=0; col<cols; col++)
+      for(int col=0; col<columns; col++)
         matrix[currentRow][col].setColors(idleColor,activeColor);
       currentRow = (currentRow+1)%rows;
-      for(int col=0; col<cols; col++)
+      for(int col=0; col<columns; col++)
         matrix[currentRow][col].setColors(idleRowColor,activeRowColor);
     return;
     case OF_KEY_UP:
-      for(int col=0; col<cols; col++)
+      for(int col=0; col<columns; col++)
         matrix[currentRow][col].setColors(idleColor,activeColor);
       if(currentRow==0) currentRow=rows-1;
       else currentRow = (currentRow-1)%rows;
-      for(int col=0; col<cols; col++)
+      for(int col=0; col<columns; col++)
         matrix[currentRow][col].setColors(idleRowColor,activeRowColor);
     return;
     case OF_KEY_LEFT:
       carry=matrix[currentRow][0].getStatus();
-      for(int col=0; col<cols-1; col++)
+      for(int col=0; col<columns-1; col++)
         matrix[currentRow][col].setStatus(matrix[currentRow][col+1].getStatus());
-      matrix[currentRow][cols-1].setStatus(carry);
+      matrix[currentRow][columns-1].setStatus(carry);
     break;
     case OF_KEY_RIGHT:
-      carry=matrix[currentRow][cols-1].getStatus();
-      for(int col=cols-1; col>0; col--)
+      carry=matrix[currentRow][columns-1].getStatus();
+      for(int col=columns-1; col>0; col--)
         matrix[currentRow][col].setStatus(matrix[currentRow][col-1].getStatus());
       matrix[currentRow][0].setStatus(carry);
     break;
     case ' ':
-      for(int col=0; col<cols; col++)
+      for(int col=0; col<columns; col++)
         matrix[currentRow][col].setStatus(false);
     break;
     case 'i':
-      for(int col=0; col<cols; col++)
+      for(int col=0; col<columns; col++)
         matrix[currentRow][col].setStatus(!matrix[currentRow][col].getStatus());
     break;
     case 'r': // (re-)register
@@ -122,7 +131,7 @@ bool carry,status;
       oscSender.sendMessage(m);
     break;
   } // switch
-  for(int col=0; col<cols; col++){
+  for(int col=0; col<columns; col++){
     status=matrix[currentRow][col].getStatus();
     ofxOscMessage m;
     m.setAddress("/box/setstatus");
@@ -147,7 +156,7 @@ void testApp::mouseDragged(int x, int y, int button)
 bool newstatus;
 
   for(int row=0; row<rows; row++){
-    for(int col=0; col<cols; col++){
+    for(int col=0; col<columns; col++){
       if(matrix[row][col].pointerIsIn(mouseX,mouseY)){
         newstatus = !button ? 1 : 0;
 	matrix[row][col].setStatus(newstatus);
@@ -167,7 +176,7 @@ void testApp::mousePressed(int x, int y, int button)
 bool status;
 
   for(int row=0; row<rows; row++){
-    for(int col=0; col<cols; col++){
+    for(int col=0; col<columns; col++){
       if(matrix[row][col].pointerIsIn(mouseX,mouseY)){
         status=matrix[row][col].toggleStatus();
 	ofxOscMessage m;
@@ -186,19 +195,20 @@ void testApp::mouseReleased(int x, int y, int button)
 {
 }
 
+
 void testApp::windowResized(int w, int h)
 {
-float rectWidth=(w-(cols+1)*margin)/cols;
+float rectWidth=(w-(columns+1)*margin)/columns;
 float rectHeight=(h-(rows+1)*margin)/rows;
 
   for(int row=0; row<rows; row++){
-    for(int col=0; col<cols; col++){
+    for(int col=0; col<columns; col++){
       matrix[row][col].setGeometry(col*rectWidth+(col+1)*margin,
           row*rectHeight+(row+1)*margin,rectWidth,rectHeight);
     } // for
   } // for
+} // windowResized()
 
-}
 
 void testApp::gotMessage(ofMessage msg)
 {

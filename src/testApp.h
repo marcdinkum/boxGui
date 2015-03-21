@@ -8,6 +8,9 @@
 #define OSC_REMOTE_PORT 7777
 #define OSC_RECEIVE_PORT 7778
 
+#define ROWS 16
+#define COLUMNS 16
+
 class testApp : public ofBaseApp{
 	
 public:
@@ -28,7 +31,7 @@ public:
 
 private:
   string oscHost;
-  int rows=16,cols=14;
+  int rows,columns;
   float margin;
   int currentRow;
   ofColor idleColor,activeColor,idleRowColor,activeRowColor;
@@ -36,6 +39,6 @@ private:
   ofxOscSender oscSender;
   ofxOscReceiver oscReceiver;
 
-  MatrixButton matrix[16][14];
+  MatrixButton matrix[ROWS][COLUMNS];
 };
 
